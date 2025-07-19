@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Clone</title>
+<link rel="stylesheet" href="main.css">
+</head>
+<body>
+<nav>
+    <div class="logo" onclick="showGrid()">YouTube</div>
+    <div class="search-bar">
+        <input type="text" placeholder="Search">
+    </div>
+    <div class="profile"></div>
+</nav>
+<div class="container">
+    <aside>
+        <button onclick="showGrid()">Home</button>
+        <button onclick="alert('Trending feature coming soon!')">Trending</button>
+        <button onclick="showSubscriptions()">Subscriptions</button>
+        <button onclick="showLibrary()">Library</button>
+    </aside>
+    <main>
+        <div class="video-grid" id="videoGrid"></div>
+        <div id="channelList" style="display:none; padding:20px;"></div>
+        <div class="video-player-container" id="videoPlayerContainer">
+            <iframe id="videoPlayer" src="" frameborder="0" allowfullscreen></iframe>
+            <button class="back-button" onclick="showGrid()">Back to Home</button>
+        </div>
+    </main>
+</div>
+<script>
+const videos = [
+    {id:1, thumbnail:'https://i.ytimg.com/vi/tIZpNrr0uX8/maxresdefault.jpg', title:'Beach: Relaxing video', channel:'Goodfull', videoUrl:'https://www.youtube.com/embed/tIZpNrr0uX8'},
+    {id:2, thumbnail:'https://i.ytimg.com/vi/BRm3n0lOstg/maxresdefault.jpg', title:'10 Minute Pasta Recipes - 4 Ways', channel:'Your food life', videoUrl:'https://www.youtube.com/embed/BRm3n0lOst'},
+    {id:3, thumbnail:'https://i.ytimg.com/vi/l7o9rwHzVdQ/maxresdefault.jpg', title:'Master JavaScript in 10 Minutes', channel:'Code Master', videoUrl:'https://www.youtube.com/embed/l7o9rwHzVdQ'},
+    {id:4, thumbnail:'https://i.ytimg.com/vi/NpyjSlyDUFw/maxresdefault.jpg', title:'C Language Tips and Tricks', channel:'Code Master', videoUrl:'https://www.youtube.com/embed/NpyjSlyDUFw'},
+    {id:5, thumbnail:'https://i.ytimg.com/vi/eHJnEHyyN1Y/maxresdefault.jpg', title:'6 Tips on Being a Successful Entrepreneur', channel:'TED',  videoUrl:'https://www.youtube.com/embed/eHJnEHyyN1Y'},
+];
+const grid = document.getElementById('videoGrid');
+const channelList = document.getElementById('channelList');
+const videoPlayerContainer = document.getElementById('videoPlayerContainer');
+const videoPlayer = document.getElementById('videoPlayer');
+
+function getSubscriptions() {
+    return JSON.parse(localStorage.getItem('subscriptions') || '[]');
+}
+
+function toggleSubscription(channel) {
+    let subs = getSubscriptions();
+    if (subs.includes(channel)) {
+        subs = subs.filter(sub => sub !== channel);
+    } else {
+        subs.push(channel);
+    }
+    localStorage.setItem('subscriptions', JSON.stringify(subs));
+    showGrid();
+}
+
+function getWatchedVideos() {
+    return JSON.parse(localStorage.getItem('watched') || '[]');
+}
+
+function addToWatched(videoId) {
+    let watched = getWatchedVideos();
+    if (!watched.includes(videoId)) {
+        watched.push(videoId);
+        localStorage.setItem('watched', JSON.stringify(watched));
+    }
+}
+
+function clearLibrary() {
+    localStorage.removeItem('watched');
+    alert('Watch history cleared!');
+    showLibrary();
+}
+
+function renderVideos(videoList) {
+    grid.innerHTML = '';
+    grid.style.display = 'grid';
+    channelList.style.display = 'none';
+    videoPlayerContainer.classList.remove('active');
+    const subs = getSubscriptions();
+    videoList.forEach(video => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.innerHTML = `
+            <img class="thumbnail" src="${video.thumbnail}" alt="Thumbnail">
+            <div class="video-info">
+                <div class="video-title">${video.title}</div>
+                <div class="video-meta">${video.channel}</div>
+            </div>`;
+        card.addEventListener('click', () => playVideo(video.videoUrl, video.id));
+
+        const btn = document.createElement('button');
+        btn.className = 'subscribe-btn';
+        btn.innerText = subs.includes(video.channel) ? 'Unsubscribe' : 'Subscribe';
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleSubscription(video.channel);
+        });
+        card.appendChild(btn);
+        grid.appendChild(card);
+    });
+}
+
+function showGrid() {
+    grid.style.display = 'grid';
+    channelList.style.display = 'none';
+    videoPlayerContainer.classList.remove('active');
+    renderVideos(videos);
+}
+
+function showSubscriptions() {
+    const subs = getSubscriptions();
+    grid.style.display = 'none';
+    videoPlayerContainer.classList.remove('active');
+    channelList.style.display = 'block';
+    channelList.innerHTML = '<h2>Subscribed Channels</h2>';
+
+    if (subs.length === 0) {
+        channelList.innerHTML += '<p>You have not subscribed to any channels yet.</p>';
+        return;
+    }
+
+    subs.forEach(channel => {
+        const btn = document.createElement('button');
+        btn.style.display = 'block';
+        btn.style.margin = '10px';
+        btn.innerText = channel;
+        btn.onclick = () => showChannelVideos(channel);
+        channelList.appendChild(btn);
+    });
+}
+
+function showChannelVideos(channel) {
+    const filtered = videos.filter(v => v.channel === channel);
+    renderVideos(filtered);
+}
+
+function showLibrary() {
+    const watched = getWatchedVideos();
+    const watchedVideos = videos.filter(v => watched.includes(v.id));
+    grid.innerHTML = '<button class="clear-history-btn" onclick="clearLibrary()">Clear Watch History</button>';
+    grid.style.display = 'grid';
+    channelList.style.display = 'none';
+    videoPlayerContainer.classList.remove('active');
+    watchedVideos.forEach(video => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.innerHTML = `
+            <img class="thumbnail" src="${video.thumbnail}" alt="Thumbnail">
+            <div class="video-info">
+                <div class="video-title">${video.title}</div>
+                <div class="video-meta">${video.channel}</div>
+                <div class="video-meta">${video.views} • ${video.date}</div>
+            </div>`;
+        card.addEventListener('click', () => playVideo(video.videoUrl, video.id));
+        grid.appendChild(card);
+    });
+}
+
+function playVideo(url, videoId) {
+    grid.style.display = 'none';
+    channelList.style.display = 'none';
+    videoPlayerContainer.classList.add('active');
+    videoPlayer.src = url;
+    addToWatched(videoId);
+}
+
+showGrid();
+</script>
+</body>
+</html>
